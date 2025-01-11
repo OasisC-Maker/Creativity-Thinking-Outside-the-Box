@@ -112,7 +112,7 @@
             console.warn(`Could not load locale "${name}"`)
             name = window.i18n.available[0]
           }
-          const encoded = await __loadJsonp(`course:${name}`, `locales/${name}.js`)
+          const encoded = await __loadJsonp(`course:${name}`, `https://oasisc-maker.github.io/Creativity-Thinking-Outside-the-Box/scormcontent/locales/${name}.js`)
           const courseData = deserialize(encoded)
           return courseData
         }
