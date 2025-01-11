@@ -185,11 +185,19 @@ function hookProxy(funcName) {
 
 var LMSProxyFuncs = pick(LMSProxySelections, window.parent, Function.prototype);
 
-function noAPIFunction (funcName) {
+function noAPIFunction(funcName) {
   return function () {
-    console.log('Warning: Course was unable to find the LMS API for ' + funcName + '. Course may have been launched from scormcontent/index.html, or the course package is not within an LMS. Saving of student data will not occur.');
-  }
+    if (!funcName) {
+      console.warn('Warning: Function name is not provided.');
+      return;
+    }
+    console.log(
+      'Warning: Course was unable to find the LMS API for ' + funcName + 
+      '. Course may have been launched from scormcontent/index.html, or the course package is not within an LMS. Saving of student data will not occur.'
+    );
+  };
 }
+
 
 var initProxy = function() {
   return Object.keys(LMSProxyFuncs).reduce(function(newProxy, funcName) {
