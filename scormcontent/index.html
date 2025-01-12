@@ -27,6 +27,7 @@
     <script id="__REMOTE_ENTRIES__" type="application/json">
       {"mondrian":{".js":["https://oasisc-maker.github.io/Creativity-Thinking-Outside-the-Box/scormcontent/lib/mondrian/entry.js"]}}
     </script>
+
     <script>
       (function() {
         const jsonp = {}
@@ -41,7 +42,7 @@
                 link.onload = resolve
                 link.onerror = reject
                 link.rel = 'stylesheet'
-                link.href = manifest['.css'][idx]
+                link.href = 'lib/' + manifest['.css'][idx]
                 document.body.appendChild(link)
               }))
             }
@@ -86,7 +87,7 @@
                 jsonp[id] = resolve
                 const script = document.createElement('script')
                 script.onerror = reject
-                script.src = `https://oasisc-maker.github.io/Appreciative-Inquiry/scormcontent/${path}`
+                script.src = `https://oasisc-maker.github.io/Creativity-Thinking-Outside-the-Box/scormcontent/${path}`
                 document.head.appendChild(script)
               } catch (err) {
                 reject(err)
@@ -111,7 +112,7 @@
             console.warn(`Could not load locale "${name}"`)
             name = window.i18n.available[0]
           }
-          const encoded = await __loadJsonp(`course:${name}`, `https://oasisc-maker.github.io/Creativity-Thinking-Outside-the-Box/scormcontent/locales/${name}.js`)
+          const encoded = await __loadJsonp(`course:${name}`, `locales/${name}.js`)
           const courseData = deserialize(encoded)
           return courseData
         }
@@ -185,53 +186,44 @@ function hookProxy(funcName) {
 
 var LMSProxyFuncs = pick(LMSProxySelections, window.parent, Function.prototype);
 
-function noAPIFunction(funcName) {
+function noAPIFunction (funcName) {
   return function () {
-    if (!funcName) {
-      console.warn('Warning: Function name is not provided.');
-      return;
-    }
-    console.warn(
-      `Warning: LMS API method "${funcName}" is not implemented or not available. 
-      The course may not be running in an LMS environment, and saving data may not occur.`
-    );
-  };
+    console.log('Warning: Course was unable to find the LMS API for ' + funcName + '. Course may have been launched from scormcontent/index.html, or the course package is not within an LMS. Saving of student data will not occur.');
+  }
 }
 
+var initProxy = function() {
+  return Object.keys(LMSProxyFuncs).reduce(function(newProxy, funcName) {
+    if (LMSProxyFuncs[funcName].toString().length < 35) {
+      noAPIFunction(funcName)();
 
-
-var initProxy = function () {
-  return Object.keys(LMSProxyFuncs).reduce(function (newProxy, funcName) {
-    const funcImplementation = LMSProxyFuncs[funcName];
-
-    // If the function is missing or too short to be valid, assign a fallback.
-    if (!funcImplementation || funcImplementation.toString().length < 35) {
-      console.warn(`Assigning fallback for missing LMS API method: ${funcName}`);
-      newProxy[funcName] = noAPIFunction(funcName);
+      if (funcName === 'cmi5') {
+        newProxy['cmi5'] = {
+          getMasteryScore: noAPIFunction('cmi5.getMasteryScore')
+        }
+      } else {
+        newProxy[funcName] = noAPIFunction(funcName);
+      }
+      
       return newProxy;
     }
 
-    // Special handling for specific functions.
     if (arrayHas(funcName, ['CreateResponseIdentifier', 'MatchingResponse', 'cmi5'])) {
-      newProxy[funcName] = funcImplementation;
+      newProxy[funcName] = LMSProxyFuncs[funcName];
       return newProxy;
     }
 
-    // Wrap the LMS function to add hooks or additional functionality.
     newProxy[funcName] = function () {
-      const args = Array.from(arguments); // Convert arguments to an array
-      const result = funcImplementation.apply(null, args);
+      var args = ([]).slice.call(arguments);
+      var result = LMSProxyFuncs[funcName].apply(null, args);
 
-      // Add hook logic if necessary.
       hookProxy(funcName);
 
       return result;
-    };
-
+    }
     return newProxy;
-  }, {});
-};
-
+  }, {})
+}
 
 
     var LMSProxy = initProxy();
@@ -299,7 +291,7 @@ function identity(value) {
 }
 
 function bookmark(id) {
-  var url = 'https://oasisc-maker.github.io/Creativity-Thinking-Outside-the-Box/scormcontent/index.html#/lessons/' + id;
+  var url = 'index.html#/lessons/' + id;
 
   LMSProxy.SetBookmark(url, '');
 }
@@ -597,6 +589,9 @@ root.Runtime = {
 
   }(window));
 </script>
-<script>__loadEntry()</script>
+
+    
+    <script>__loadEntry()</script>
+    
   </body>
 </html>
